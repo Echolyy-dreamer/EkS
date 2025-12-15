@@ -5,6 +5,7 @@
 > ALB Target Group 选择 IP 模式，还是 Instance 模式？
 本实验以工程和架构视角，对比这两种模式在EKS中的配置要求、流量路径、网络行为以及隐含的系统设计差异，并给出实践结论。
 
+---
 
 ## 二、实验目标
 
@@ -20,6 +21,8 @@
 - 对客户端真实IP的影响
 - 对IAM/控制面的依赖差异
 
+---
+
 ## 三、实验环境
 
 - Amazon EKS（VPC CNI）
@@ -29,6 +32,8 @@
 - 对比两种 Target Group 类型：
   - `target-type: ip`
   - `target-type: instance`
+  
+---
 
 ## 四、模式一：ALB IP 模式（推荐实践）
 
@@ -179,6 +184,11 @@ elasticloadbalancing:DescribeListenerAttributes
 ## 九、项目价值
 
 本实验验证配置差异，从 **网络路径、数据平面、控制平面和 IAM 依赖** 四个层面理解了 EKS + ALB 的真实工作方式。
+
+
+
+
+
 
 
 
