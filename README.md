@@ -1,0 +1,183 @@
+# 🛠️ EKS ALB Target Group 实验步骤（IP Mode vs Instance Mode）
+
+> 本 README **仅记录实验操作步骤**，用于在 Amazon EKS 中对比 ALB Target Group 的 **IP 模式** 与 **Instance 模式** 的行为差异。
+
+---
+
+## 一、基础环境准备
+
+### 1. 创建 EKS 集群
+
+```bash
+eksctl create cluster \
+  --name my-alb-test-cluster \
+  --region us-east-1 \
+  --node-type t3.medium \
+  --nodes 2
+```
+
+确认节点就绪：
+
+```bash
+kubectl get nodes -o wide
+```
+
+---
+
+### 2. 安装 AWS Load Balancer Controller
+
+> 假设已完成 OIDC Provider 关联、IAM Role 与 Policy 准备。
+
+```bash
+kubectl apply -k github.com/aws/eks-charts/stable/aws-load-balancer-controller//crds
+```
+
+```bash
+kubectl apply -f aws-load-balancer-controller.yaml
+```
+
+确认 Controller 正常运行：
+
+```bash
+kubectl -n kube-system get pods -l app.kubernetes.io/name=aws-load-balancer-controller
+```
+
+---
+
+### 3. 部署基础应用（Nginx）
+
+所有实验模式共用同一个 Deployment。
+
+```bash
+kubectl apply -f nginx-base.yaml
+```
+
+记录 Pod IP（用于后续验证）：
+
+```bash
+kubectl get pods -l app=nginx -o wide
+```
+
+---
+
+## 二、实验一：IP Mode（ClusterIP + target-type: ip）
+
+### 1. 部署 Service 与 Ingress
+
+```bash
+kubectl apply -f nginx-ip-mode.yaml
+```
+
+关键点：
+
+* Service 类型：`ClusterIP`
+* Ingress 注解：
+
+  ```yaml
+  alb.ingress.kubernetes.io/target-type: ip
+  ```
+
+---
+
+### 2. 等待 ALB 创建
+
+```bash
+kubectl get ingress nginx-ingress-ip -o wide
+```
+
+确认 Ingress Event 无权限错误：
+
+```bash
+kubectl describe ingress nginx-ingress-ip
+```
+
+获取 ALB 地址：
+
+```bash
+kubectl get ingress nginx-ingress-ip -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+```
+
+---
+
+### 3. 验证 Target Group 与流量路径
+
+* AWS 控制台 / CLI：
+
+  * Target Group 中注册的目标应为 **Pod IP**
+
+* 访问 ALB：
+
+```bash
+curl http://<ALB_IP_MODE_ADDRESS>
+```
+
+* 查看 Nginx Pod 日志：
+
+```bash
+kubectl logs <NGINX_POD_NAME>
+```
+
+预期：
+
+* 流量直接到达 Pod
+* 客户端真实 IP 通过 `X-Forwarded-For` Header 保留
+
+---
+
+## 三、实验二：Instance Mode（NodePort + target-type: instance）
+
+### 1. 部署 Service 与 Ingress
+
+```bash
+kubectl apply -f nginx-instance-mode.yaml
+```
+
+关键点：
+
+* Service 类型：`NodePort`
+* Ingress 注解：
+
+  ```yaml
+  alb.ingress.kubernetes.io/target-type: instance
+  ```
+
+---
+
+### 2. 验证 NodePort 与 Target Group
+
+```bash
+kubectl get service nginx-service-instance
+```
+
+记录分配的 NodePort（示例：30456）。
+
+* AWS 控制台 / CLI：
+
+  * Target Group 中注册的目标应为 **Worker Node IP : NodePort**
+
+---
+
+### 3. 验证 SNAT 行为
+
+访问 ALB：
+
+```bash
+curl http://<ALB_INSTANCE_MODE_ADDRESS>
+```
+
+查看 Pod 日志：
+
+```bash
+kubectl logs <NGINX_POD_NAME>
+```
+
+预期：
+
+* Pod 看到的源 IP 为 **Worker Node IP**
+* 客户端真实 IP 丢失（默认 kube-proxy SNAT 行为）
+
+---
+
+## 四、实验完成
+
+至此，可通过 Target Group 注册对象、Pod 日志与网络路径，对比 IP Mode 与 Instance Mode 的差异。
