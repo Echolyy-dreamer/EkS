@@ -1,0 +1,43 @@
+# nginx-instance-mode.yaml
+
+# --- 1. NodePort Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service-instance
+spec:
+  # 关键点 3: NodePort
+  type: NodePort 
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+---
+# --- 2. Ingress (Target Type: instance) ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress-instance
+  annotations:
+    # 关键点 4: 目标类型为 Instance
+    alb.ingress.kubernetes.io/target-type: instance 
+    # 必须指定 ALB Controller
+    kubernetes.io/ingress.class: aws-load-balancer
+    # 可选: 面向公网
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # 可选: 允许跨AZ
+    alb.ingress.kubernetes.io/group.name: "nginx-group"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-service-instance 
+            port:
+              number: 80
