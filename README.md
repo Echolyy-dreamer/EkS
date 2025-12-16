@@ -13,7 +13,8 @@ eksctl create cluster \
   --name my-alb-test-cluster \
   --region us-east-1 \
   --node-type t3.medium \
-  --nodes 2
+  --nodes 2 \
+  --enable-oidc  # 自动创建并关联OIDC Provider（IRSA核心依赖）
 ```
 
 确认节点就绪：
