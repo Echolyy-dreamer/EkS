@@ -24,13 +24,14 @@ metadata:
   annotations:
     # 关键点 4: 目标类型为 Instance
     alb.ingress.kubernetes.io/target-type: instance 
-    # 必须指定 ALB Controller
-    kubernetes.io/ingress.class: aws-load-balancer
     # 可选: 面向公网
     alb.ingress.kubernetes.io/scheme: internet-facing
     # 可选: 允许跨AZ
     alb.ingress.kubernetes.io/group.name: "nginx-group"
+    # 移除废弃且不规范的注解：kubernetes.io/ingress.class: aws-load-balancer
 spec:
+  # 新增AWS官方推荐的标准字段，统一关联ALB Controller
+  ingressClassName: alb
   rules:
   - http:
       paths:
