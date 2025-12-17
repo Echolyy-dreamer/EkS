@@ -27,47 +27,56 @@ kubectl get nodes -o wide
 
 ### 2. 安装 AWS Load Balancer Controller
 
-> 阶段 1：创建 IAM 策略和服务账户
-下载 IAM Policy 文档：
+> ### 2.1 Create IAM Policy
 
 ```bash
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json" -OutFile "iam_policy.json"
+curl -o iam_policy.json \
+https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
 ```
 
-创建 IAM 策略：
-# 请替换 <YOUR_REGION> 为您的集群所在区域 (例如 us-east-1，根据您 cluster-info 的输出)
 ```bash
-$policyArn = aws iam create-policy --policy-name AWSLoadBalancerControllerIAMPolicy --policy-document file://iam_policy.json --query 'Policy.Arn' --output text
-Write-Host "IAM Policy ARN: $policyArn"
-```bash
+policyArn=$(aws iam create-policy \
+  --policy-name AWSLoadBalancerControllerIAMPolicy \
+  --policy-document file://iam_policy.json \
+  --query 'Policy.Arn' \
+  --output text)
 
-创建 Kubernetes IAM 服务账户 (IRSA)：
-# 替换 <YOUR_CLUSTER_NAME> 和 <YOUR_REGION>
+echo "IAM Policy ARN: $policyArn"
+```
+
+---
+
+### 2.2 Create IRSA
+
 ```bash
-eksctl create iamserviceaccount `
-    --cluster my-alb-test-cluster `
-    --namespace kube-system `
-    --name aws-load-balancer-controller `
-    --role-name AmazonEKSLoadBalancerControllerRole `
-    --attach-policy-arn $policyArn `
-    --approve
-```bash
-> 阶段 2：通过 Helm 部署 Controller
-添加 Helm 仓库：
+eksctl create iamserviceaccount \
+  --cluster my-alb-test-cluster \
+  --namespace kube-system \
+  --name aws-load-balancer-controller \
+  --role-name AmazonEKSLoadBalancerControllerRole \
+  --attach-policy-arn $policyArn \
+  --approve
+```
+
+---
+
+### 2.3 Install Controller via Helm
+
 ```bash
 helm repo add aws-load-balancer-controller https://aws.github.io/eks-charts
 helm repo update
-```bash
+```
 
-部署 Controller：
-# 替换 <YOUR_CLUSTER_NAME>
 ```bash
-helm install aws-load-balancer-controller aws-load-balancer-controller/aws-load-balancer-controller `
-    --set clusterName=my-alb-test-cluster `
-    --set serviceAccount.create=false `
-    --set serviceAccount.name=aws-load-balancer-controller `
-    --namespace kube-system
-```bash
+helm install aws-load-balancer-controller \
+  aws-load-balancer-controller/aws-load-balancer-controller \
+  --set clusterName=my-alb-test-cluster \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller \
+  --namespace kube-system
+```
+
+---
 
 确认 Controller 正常运行：
 
