@@ -1,0 +1,15 @@
+﻿# ----------------------------------------------------
+# Service B：更新为 NodePort 类型
+# ----------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: NodePort  # 核心设置：NodePort 类型
