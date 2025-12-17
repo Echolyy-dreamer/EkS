@@ -44,9 +44,7 @@ policyArn=$(aws iam create-policy \
 echo "IAM Policy ARN: $policyArn"
 ```
 
----
-
-### 2.2 Create IRSA
+>### 2.2 Create IRSA
 
 ```bash
 eksctl create iamserviceaccount \
@@ -58,9 +56,7 @@ eksctl create iamserviceaccount \
   --approve
 ```
 
----
-
-### 2.3 Install Controller via Helm
+>### 2.3 Install Controller via Helm
 
 ```bash
 helm repo add aws-load-balancer-controller https://aws.github.io/eks-charts
@@ -75,8 +71,6 @@ helm install aws-load-balancer-controller \
   --set serviceAccount.name=aws-load-balancer-controller \
   --namespace kube-system
 ```
-
----
 
 确认 Controller 正常运行：
 
