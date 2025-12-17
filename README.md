@@ -210,7 +210,7 @@ kubectl logs <NGINX_POD_NAME>
 预期：
 
 * Pod 看到的源 IP 为 **Worker Node IP**
-* 客户端真实 IP 丢失（默认 kube-proxy SNAT 行为）
+* 客户端真实 IP 丢失 （IP层面进行SNAT，但客户端真实IP可以通过X-Forwarded-For Header 保留）
 
 ---
 
